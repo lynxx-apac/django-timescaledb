@@ -22,19 +22,20 @@ class Histogram(models.Aggregate):
         super().__init__(expression, min_value, max_value, bucket)
 
 
-class Last(models.Aggregate):
-    function = 'last'
-    name = 'last'
-    output_field = FloatField()
+class AggregateWithWeakRules(models.Aggregate):
+    def _resolve_output_field(self):
+        sources_iter = (
+            source for source in self.get_source_fields() if source is not None
+        )
+        for output_field in sources_iter:
+            return output_field
 
-    def __init__(self, expression, bucket):
-        super().__init__(expression, bucket)
+
+class Last(AggregateWithWeakRules):
+    function = "last"
+    name = "last"
 
 
-class First(models.Aggregate):
-    function = 'first'
-    name = 'first'
-    output_field = FloatField()
-
-    def __init__(self, expression, bucket):
-        super().__init__(expression, bucket)
+class First(AggregateWithWeakRules):
+    function = "first"
+    name = "first"
