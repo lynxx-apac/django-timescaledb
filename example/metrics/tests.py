@@ -24,7 +24,7 @@ class TimescaleDBTests(TestCase):
         Metric.objects.create(time=timestamp - relativedelta(months=1, days=10), temperature=12)
 
         # get all metrics, monthly aggregated
-        metrics = Metric.timescale.time_bucket_ng('time', '1 month').annotate(Avg('temperature'))
+        metrics = Metric.timescale.time_bucket('time', '1 month').annotate(Avg('temperature'))
 
         # verify
         self.assertEqual(metrics[0]["temperature__avg"], 9.0)

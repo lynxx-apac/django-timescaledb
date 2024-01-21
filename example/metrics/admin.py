@@ -9,4 +9,4 @@ class MetricAdmin(admin.ModelAdmin):
 
 @admin.register(AnotherMetricFromTimeScaleModel)
 class AnotherMetricFromTimeScaleModelAdmin(admin.ModelAdmin):
-    pass
+    list_display = ['time', 'value']

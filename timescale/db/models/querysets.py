@@ -1,5 +1,5 @@
 from django.db import models
-from timescale.db.models.expressions import TimeBucket, TimeBucketGapFill, TimeBucketNG
+from timescale.db.models.expressions import TimeBucket, TimeBucketGapFill
 from timescale.db.models.aggregates import Histogram
 from typing import Dict, Optional
 from datetime import datetime
@@ -14,14 +14,6 @@ class TimescaleQuerySet(models.QuerySet):
         if annotations:
             return self.values(bucket=TimeBucket(field, interval)).order_by('-bucket').annotate(**annotations)
         return self.values(bucket=TimeBucket(field, interval)).order_by('-bucket')
-
-    def time_bucket_ng(self, field: str, interval: str, annotations: Dict = None):
-        """
-        Wraps the TimescaleDB time_bucket_ng function into a queryset method.
-        """
-        if annotations:
-            return self.values(bucket=TimeBucketNG(field, interval)).order_by('-bucket').annotate(**annotations)
-        return self.values(bucket=TimeBucketNG(field, interval)).order_by('-bucket')
 
     def time_bucket_gapfill(self, field: str, interval: str, start: datetime, end: datetime, datapoints: Optional[int] = None):
         """
