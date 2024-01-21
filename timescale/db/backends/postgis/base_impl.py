@@ -1,10 +1,7 @@
 import importlib
 import logging
 
-from django.db.backends.postgresql.base import (  # isort:skip
-    DatabaseWrapper as Psycopg2DatabaseWrapper,
-)
-
+from django.db.backends.postgresql.base import DatabaseWrapper as Psycopg2DatabaseWrapper
 from django.conf import settings
 from django.core.exceptions import ImproperlyConfigured
 
