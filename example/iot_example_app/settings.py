@@ -84,12 +84,12 @@ WSGI_APPLICATION = 'iot_example_app.wsgi.application'
 
 DATABASES = {
     'default': {
-        'ENGINE': 'timescale.db.backends.postgresql',
-        'NAME': os.getenv('DB_DATABASE'),
-        'USER': os.getenv('DB_USERNAME'),
-        'PASSWORD': os.getenv('DB_PASSWORD'),
-        'HOST': os.getenv('DB_HOST'),
-        'PORT': os.getenv('DB_PORT'),
+        'ENGINE': 'timescale.db.backends.postgis',
+        'NAME': os.getenv('DB_DATABASE', default='iot_example_app'),
+        'USER': os.getenv('DB_USERNAME', default='postgres'),
+        'PASSWORD': os.getenv('DB_PASSWORD', default=''),
+        'HOST': os.getenv('DB_HOST', default='localhost'),
+        'PORT': os.getenv('DB_PORT', default='5432'),
     }
 }
 

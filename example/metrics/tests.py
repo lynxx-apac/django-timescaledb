@@ -1,5 +1,5 @@
 from timescale.db.models.fields import TimescaleDateTimeField
-from timescale.db.models.expressions import TimeBucketNG
+from timescale.db.models.expressions import TimeBucket
 from metrics.models import Metric
 from django.utils import timezone
 from dateutil.relativedelta import relativedelta
@@ -31,10 +31,15 @@ class TimescaleDBTests(TestCase):
         self.assertEqual(metrics[1]["temperature__avg"], 13.0)
 
         # get first entry of the monthly aggregated datapoints
-        metrics = (Metric.timescale
-                   .values(interval_end=TimeBucketNG('time', f'1 month', output_field=TimescaleDateTimeField(interval='1 month')))
-                   .annotate(temperature__first=First('temperature', 'time')))
-
+        metrics = Metric.timescale.values(
+            interval_end=TimeBucket(
+                'time',
+                '1 month',
+                output_field=TimescaleDateTimeField(interval='1 month')
+            )
+        ).annotate(
+            temperature__first=First('temperature', 'time')
+        )
         # verify
         # XXX: Remove
         self.assertEqual(metrics[0]["temperature__first"], 14.0)
