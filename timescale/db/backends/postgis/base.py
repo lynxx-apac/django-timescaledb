@@ -1,10 +1,7 @@
 import logging
-
+from . import base_impl
 from django.db import ProgrammingError
-from django.core.exceptions import ImproperlyConfigured
-
-from timescale.db.backends.postgis import base_impl
-from timescale.db.backends.postgis.schema import TimescaleSchemaEditor
+from .schema import TimescaleSchemaEditor
 
 
 logger = logging.getLogger(__name__)
@@ -14,10 +11,10 @@ class DatabaseWrapper(base_impl.backend()):
     SchemaEditorClass = TimescaleSchemaEditor
 
     def prepare_database(self):
-        """Prepare the configured database.
-        This is where we enable the `timescaledb` extension
-        if it isn't enabled yet."""
-
+        """
+        Prepare the configured database.
+        This is where we enable the `timescaledb` extension if it isn't enabled yet.
+        """
         super().prepare_database()
         with self.cursor() as cursor:
             try:

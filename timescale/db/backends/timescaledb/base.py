@@ -1,20 +1,21 @@
 import logging
-from . import base_impl
 from django.db import ProgrammingError
-from .schema import TimescaleSchemaEditor
+
+from . import base_impl
+from .schema import TimescaleBaseSchemaEditor
 
 
 logger = logging.getLogger(__name__)
 
 
 class DatabaseWrapper(base_impl.backend()):
-    SchemaEditorClass = TimescaleSchemaEditor
+    SchemaEditorClass = TimescaleBaseSchemaEditor
 
     def prepare_database(self):
-        """
-        Prepare the configured database.
-        This is where we enable the `timescaledb` extension if it isn't enabled yet.
-        """
+        """Prepare the configured database.
+        This is where we enable the `timescaledb` extension
+        if it isn't enabled yet."""
+
         super().prepare_database()
         with self.cursor() as cursor:
             try:

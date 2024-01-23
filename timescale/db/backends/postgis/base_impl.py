@@ -1,32 +1,17 @@
-import importlib
 import logging
-
-from django.db.backends.postgresql.base import DatabaseWrapper as Psycopg2DatabaseWrapper
+import importlib
 from django.conf import settings
+from ..timescaledb.base_impl import schema_editor, introspection, operations
+from django.db.backends.postgresql.base import DatabaseWrapper as PsycopgDatabaseWrapper
 from django.core.exceptions import ImproperlyConfigured
-
-logger = logging.getLogger(__name__)
+logging = logging.getLogger(__name__)
 
 
 def backend():
-    """Gets the base class for the custom database back-end.
-    This should be the Django PostgreSQL back-end. However,
-    some people are already using a custom back-end from
-    another package. We are nice people and expose an option
-    that allows them to configure the back-end we base upon.
-    As long as the specified base eventually also has
-    the PostgreSQL back-end as a base, then everything should
-    work as intended.
-    """
-    base_class_name = getattr(
-        settings,
-        "TIMESCALE_DB_BACKEND_BASE",
-        "django.contrib.gis.db.backends.postgis",
-    )
-
+    """ override backend from timescaledb.base_impl to provide postgis as default backend base """
+    base_class_name = getattr(settings, "TIMESCALE_DB_BACKEND_BASE", "django.contrib.gis.db.backends.postgis")
     base_class_module = importlib.import_module(base_class_name + ".base")
     base_class = getattr(base_class_module, "DatabaseWrapper", None)
-
     if not base_class:
         raise ImproperlyConfigured(
             (
@@ -36,8 +21,7 @@ def backend():
             )
             % base_class_name
         )
-
-    if isinstance(base_class, Psycopg2DatabaseWrapper):
+    if isinstance(base_class, PsycopgDatabaseWrapper):
         raise ImproperlyConfigured(
             (
                 "'%s' is not a valid database back-end."
@@ -46,32 +30,4 @@ def backend():
             )
             % base_class_name
         )
-
     return base_class
-
-
-def schema_editor():
-    """Gets the base class for the schema editor.
-    We have to use the configured base back-end's schema editor for
-    this.
-    """
-
-    return backend().SchemaEditorClass
-
-
-def introspection():
-    """Gets the base class for the introspection class.
-    We have to use the configured base back-end's introspection class
-    for this.
-    """
-
-    return backend().introspection_class
-
-
-def operations():
-    """Gets the base class for the operations class.
-    We have to use the configured base back-end's operations class for
-    this.
-    """
-
-    return backend().ops_class
