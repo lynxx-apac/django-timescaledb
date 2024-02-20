@@ -4,6 +4,7 @@ from django.utils import timezone
 from random import uniform, choice
 from datetime import timedelta
 
+
 class Command(BaseCommand):
     help = 'Uses PSUTILS to read any temperature sensor and adds a record'
     DEVICES = [1234, 1245, 1236]

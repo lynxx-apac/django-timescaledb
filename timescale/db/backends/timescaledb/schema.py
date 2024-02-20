@@ -1,57 +1,103 @@
+from typing import Optional
+
 from django.conf import settings
 from django.db.backends.postgresql.schema import DatabaseSchemaEditor
 from timescale.db.models.fields import TimescaleDateTimeField
 
 
 class TimescaleBaseSchemaEditor(DatabaseSchemaEditor):
-    sql_is_hypertable = (
-        "SELECT * FROM timescaledb_information.hypertables " 
-        "WHERE hypertable_name = %(table)s%(extra_condition)s"
-    )
-    sql_assert_is_hypertable = (
-        f"DO $do$ BEGIN "
-        "IF EXISTS (" + sql_is_hypertable + ") THEN NULL; "
-        "ELSE RAISE EXCEPTION %(error_message)s; "
-        "END IF;"
-        "END; $do$"
-    )
-    sql_assert_is_not_hypertable = (
-        "DO $do$ BEGIN "
-        "IF EXISTS (" + sql_is_hypertable + ") THEN RAISE EXCEPTION %(error_message)s; "
-        "ELSE NULL; "
-        "END IF;"
-        "END; $do$"
-    )
-    sql_add_hypertable = (
-        "SELECT create_hypertable("
-        "%(table)s, %(partition_column)s, "
-        "chunk_time_interval => interval %(interval)s, "
-        "migrate_data => %(migrate)s)"
-    )
-    sql_create_continuous_aggregation = (
-        "CREATE MATERIALIZED VIEW %(table)s%(columns)s "
-        "WITH ( timescaledb.continuous %(timescaledb_options)s ) "
-        "AS %(definition)s "
-        "%(with_no_data)s "
-    )
-    sql_create_timescaledb_policy = (
+    sql_is_hypertable = """
+        SELECT * FROM timescaledb_information.hypertables  
+        WHERE hypertable_name = %(table)s%(extra_condition)s
+    """
+    sql_assert_is_hypertable = f"""
+        DO $do$ BEGIN 
+        IF EXISTS ({sql_is_hypertable}) THEN NULL; 
+        ELSE RAISE EXCEPTION %(error_message)s; 
+        END IF;
+        END; $do$
+    """
+    sql_assert_is_not_hypertable = f"""
+        DO $do$ BEGIN 
+        IF EXISTS ({sql_is_hypertable}) THEN RAISE EXCEPTION %(error_message)s; 
+        ELSE NULL; 
+        END IF;
+        END; $do$
+    """
+    sql_add_hypertable = """
+        SELECT create_hypertable(
+        %(table)s, %(partition_column)s, 
+        chunk_time_interval => interval %(interval)s, 
+        migrate_data => %(migrate)s)
+    """
+    sql_create_continuous_aggregation = """
+        CREATE MATERIALIZED VIEW %(table)s%(columns)s 
+        WITH ( timescaledb.continuous %(timescaledb_options)s ) 
+        AS %(definition)s 
+        %(with_no_data)s 
+    """
+    sql_add_continuous_aggregate_policy = """
+        SELECT add_continuous_aggregate_policy(
+            %(table),
+            %(start_offset)s
+            %(end_offset)s
+            %(schedule_interval)s
+            %(initial_start)s
+            %(timezone)s
+            %(if_not_exists)s
+        )
+    
+    """
+    sql_add_retention_policy = """
+        SELECT add_retention_policy(
+            %(table)s, 
+            %(drop_after)s
+            %(schedule_interval)s
+            %(initial_start)s
+            %(timezone)s
+            %(if_not_exists)s
+            %(drop_created_before)
+        )
+    """
+    sql_remove_retention_policy = (
         ""
     )
+    sql_enable_compression = """
+        ALTER TABLE %(table)s
+        SET (
+           timescaledb.compress=%(enable)s
+           %(compress_orderby)s
+           %(compress_segmentby)s
+           %(compress_chunk_time_interval)s
+        )
+    """
+    sql_disable_compression = "ALTER TABLE %(table)s SET (timescaledb.compress=FALSE)"
+    sql_add_compression_policy = """
+        SELECT add_compression_policy(
+            %(table)s, 
+            %(compress_after)s
+            %(schedule_interval)s
+            %(initial_start)s
+            %(timezone)s
+            %(if_not_exists)s
+            %(compress_created_before)
+        )
+    """
+    sql_remove_compression_policy = "SELECT remove_compression_policy(%(table)s%(if_exists)s)"
+    sql_decompress_table = "SELECT decompress_chunk(c, true) FROM show_chunks(%(table)s%(older_than)s%(newer_than)s) c"
+    sql_disable_scheduled_job = "SELECT alter_job(%(job_id)s, scheduled=FALSE)"
+    sql_enable_scheduled_job = "SELECT alter_job(%(job_id)s, scheduled=TRUE)"
     sql_set_chunk_time_interval = "SELECT set_chunk_time_interval(%(table)s, interval %(interval)s)"
     sql_hypertable_is_in_schema = "hypertable_schema = %(schema_name)s"
 
-    @staticmethod
-    def table_name(model):
-        return model._meta.db_table
-
     def get_hypertable_db_params(self, model):
-        return {'table': self.quote_value(self.table_name(model)), 'extra_condition': self._get_extra_condition()}
+        return {'table': self.quote_value(model._meta.db_table), 'extra_condition': self._get_extra_condition()}
 
     def _assert_is_hypertable(self, model):
         """ Assert if the table is a hyper table """
         db_params = self.get_hypertable_db_params(model)
         db_params['error_message'] = self.quote_value(
-            f'assert failed - {self.table_name(model)} should be a hyper table')
+            f'assert failed - {model._meta.db_table} should be a hyper table')
         sql = self.sql_assert_is_hypertable % db_params
         self.execute(sql)
 
@@ -59,18 +105,17 @@ class TimescaleBaseSchemaEditor(DatabaseSchemaEditor):
         """ Assert if the table is not a hyper table """
         db_params = self.get_hypertable_db_params(model)
         db_params['error_message'] = self.quote_value(
-            f'assert failed - {self.table_name(model)} should not be a hyper table')
+            f'assert failed - {model._meta.db_table} should not be a hyper table')
         sql = self.sql_assert_is_not_hypertable % db_params
         self.execute(sql)
 
     def _drop_primary_key(self, model):
         """
-        Hypertables can't partition if the primary key is not
-        the partition column.
+        Hypertables can't partition if the primary key is not the partition column.
         So we drop the mandatory primary key django creates.
         """
         sql = self.sql_delete_constraint % {
-            'table': self.quote_name(self.table_name(model)), 'name': self.quote_name(f'{self.table_name(model)}_pkey')}
+            'table': self.quote_name(model._meta.db_table), 'name': self.quote_name(f'{model._meta.db_table}_pkey')}
         self.execute(sql)
 
     def _create_hypertable(self, model, field, should_migrate=False):
@@ -82,7 +127,7 @@ class TimescaleBaseSchemaEditor(DatabaseSchemaEditor):
         db_params = {
             'partition_column': self.quote_value(field.column),
             'interval': self.quote_value(field.interval),
-            'table': self.quote_value(self.table_name(model)),
+            'table': self.quote_value(model._meta.db_table),
             'migrate': "true" if should_migrate else "false"
         }
         if should_migrate and getattr(settings, "TIMESCALE_MIGRATE_HYPERTABLE_WITH_FRESH_TABLE", False):
@@ -97,11 +142,33 @@ class TimescaleBaseSchemaEditor(DatabaseSchemaEditor):
         # assert if already a hypertable
         self._assert_is_hypertable(model)
         sql = self.sql_set_chunk_time_interval % {
-            'table': self.quote_value(self.table_name(model)), 'interval': self.quote_value(field.interval)}
+            'table': self.quote_value(model._meta.db_table), 'interval': self.quote_value(field.interval)}
+        self.execute(sql)
+
+    def _create_continuous_aggregate(self, model):
+        definitions = model.continuous_aggregate.create_materialized_view()
+        sql = self.sql_create_continuous_aggregation % {
+            'table': self.quote_value(model._meta.db_table), 'definitions': definitions
+        }
+        self.execute(sql)
+
+    def _enable_compression(self, model):
+        sql = self.sql_disable_compression % model._meta.db_table
+        if model.compression.enable:
+            sql = self.sql_enable_compression % {
+                'table': self.quote_value(model._meta.db_table),
+                'compress_orderby': self.quote_value(model.compression.compress_orderby),
+                'compress_segmentby)': self.quote_value(model.compression.segment_by),
+                'compress_chunk_time_interval': self.quote_value(model.compression.chunk_time_interval)
+            }
         self.execute(sql)
 
     def create_model(self, model):
         """ Find TimescaleDateTimeField in the model and use it as partition when creating hypertable """
+        if getattr(model, 'compression', False):
+            self._enable_compression(model)
+        if getattr(model, 'continuous_aggregate', False):
+            return self._create_continuous_aggregate(model)
         super().create_model(model)
         for field in model._meta.local_fields:
             if isinstance(field, TimescaleDateTimeField):

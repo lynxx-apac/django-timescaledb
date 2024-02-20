@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Metric, AnotherMetricFromTimeScaleModel
+from .models import Metric, MetricAggregate
 
 
 @admin.register(Metric)
@@ -7,6 +7,6 @@ class MetricAdmin(admin.ModelAdmin):
     list_display = ('time', 'temperature', 'device')
 
 
-@admin.register(AnotherMetricFromTimeScaleModel)
+@admin.register(MetricAggregate)
 class AnotherMetricFromTimeScaleModelAdmin(admin.ModelAdmin):
-    list_display = ['time', 'value']
+    list_display = ['bucket', 'device', 'first_temperature', 'last_temperature']

@@ -15,7 +15,7 @@ try:
     from dotenv import load_dotenv
     load_dotenv()
 except ModuleNotFoundError:
-    print('not using windows, nice.')
+    print('not using environmental variables.')
 import os
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.

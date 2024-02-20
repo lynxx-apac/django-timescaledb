@@ -1,7 +1,9 @@
 from django.db import models
+from timescale.db.models.aggregates import First, Last
+
 from timescale.db.models.fields import TimescaleDateTimeField
-from timescale.db.models.models import TimescaleModel
-from timescale.db.models.managers import TimescaleManager
+from timescale.db.models.models import TimescaleModel, ContinuousAggregateModel
+from timescale.db.models.managers import TimescaleManager, ContinuousAggregateManager, CompressionManager
 
 
 class Metric(models.Model):
@@ -13,5 +15,25 @@ class Metric(models.Model):
     timescale = TimescaleManager()
 
 
-class AnotherMetricFromTimeScaleModel(TimescaleModel):
-    value = models.FloatField(default=0.0)
+class MetricMaterializedView(ContinuousAggregateManager):
+    def create_materialized_view(self):
+        return Metric.timescale.time_bucket('time', interval='2 days').values('bucket', 'device').annotate(
+            first_temperature=First('temperature', 'time'),
+            last_temperature=Last('temperature', 'time'),
+        )
+
+    def create_continuous_aggregate_policy(self):
+        pass
+
+
+class MetricCompression(CompressionManager):
+    pass
+
+
+class MetricAggregate(ContinuousAggregateModel):
+    first_temperature = models.FloatField(null=True, blank=True)
+    last_temperature = models.FloatField(null=True, blank=True)
+    device = models.IntegerField(default=0)
+
+    continuous_aggregate = MetricMaterializedView()
+    compression = MetricCompression()

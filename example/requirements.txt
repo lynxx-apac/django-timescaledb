@@ -1,5 +1,5 @@
-Django
-psycopg2
+django
+psycopg
 django-extensions
 python-dotenv
 dateutils
