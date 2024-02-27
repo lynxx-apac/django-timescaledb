@@ -22,7 +22,7 @@ class TimescaleModel(models.Model):
 
 class ContinuousAggregateModel(models.Model):
     """ Model to create and query timescaledb continuous aggregates """
-    bucket = TimescaleDateTimeField(interval="2 day")
+    time = TimescaleDateTimeField(interval="2 day", primary_key=True)
 
     timescale = TimescaleManager()
     compression = CompressionManager()

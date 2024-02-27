@@ -45,16 +45,17 @@ class ContinuousAggregateManager(TimescaleManager):
 class CompressionManager(models.Manager):
     """ custom manager to define compression of table and its policy """
     use_in_migrations = True
-    enable: bool = False
+    enable: bool = True
+    compress_after: Interval = None
     order_by: Optional[iter] = None
     segment_by: Optional[iter] = None
     chunk_time_interval: Optional[Interval] = None
     # compression policy parameters
-    schedule_interval: Optional[str] = None,
-    initial_start: Optional[int] = None,
-    timezone: Optional[str] = None,
-    if_not_exists: Optional[bool] = None,
-    compress_created_before: Optional[bool] = None
+    schedule_interval: Optional[Interval] = None
+    initial_start: Optional[datetime] = None
+    timezone: Optional[str] = None
+    if_not_exists: Optional[bool] = True
+    compress_created_before: Optional[Interval] = None
 
 
 class RetentionManager(models.Manager):
