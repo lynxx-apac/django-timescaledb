@@ -1,5 +1,3 @@
-from typing import Optional
-
 from django.conf import settings
 from django.db.backends.postgresql.schema import DatabaseSchemaEditor
 from timescale.db.models.fields import TimescaleDateTimeField
@@ -46,7 +44,6 @@ class TimescaleBaseSchemaEditor(DatabaseSchemaEditor):
             %(timezone)s
             %(if_not_exists)s
         )
-    
     """
     sql_add_retention_policy = """
         SELECT add_retention_policy(
@@ -66,9 +63,9 @@ class TimescaleBaseSchemaEditor(DatabaseSchemaEditor):
         ALTER TABLE %(table)s
         SET (
            timescaledb.compress=%(enable)s
-           %(compress_orderby)s
-           %(compress_segmentby)s
-           %(compress_chunk_time_interval)s
+           %(order_by)s
+           %(segment_by)s
+           %(chunk_time_interval)s
         )
     """
     sql_disable_compression = "ALTER TABLE %(table)s SET (timescaledb.compress=FALSE)"
@@ -153,23 +150,40 @@ class TimescaleBaseSchemaEditor(DatabaseSchemaEditor):
         self.execute(sql)
 
     def _enable_compression(self, model):
-        sql = self.sql_disable_compression % model._meta.db_table
-        if model.compression.enable:
-            sql = self.sql_enable_compression % {
-                'table': self.quote_value(model._meta.db_table),
-                'compress_orderby': self.quote_value(model.compression.compress_orderby),
-                'compress_segmentby)': self.quote_value(model.compression.segment_by),
-                'compress_chunk_time_interval': self.quote_value(model.compression.chunk_time_interval)
-            }
+        sql = self.sql_enable_compression % {
+            'table': model._meta.db_table,
+            'enable': self.quote_value(model.compression.enable),
+            'order_by': self.quote_value(model.compression.order_by),
+            'segment_by': self.quote_value(model.compression.segment_by),
+            'chunk_time_interval': self.quote_value(model.compression.chunk_time_interval.raw_sql)
+        }
         self.execute(sql)
+
+    def _disable_compression(self, model):
+        self.execute(self.sql_disable_compression % {'table': model._meta.db_table})
+
+    def _enable_retention(self, model):
+        sql = self.sql_add_retention_policy % {
+            'table': self.quote_value(model._meta.db_table),
+            'drop_after': self.quote_value(model.retention.drop_after),
+            'schedule_interval': self.quote_value(model.retention.schedule_interval.raw_sql),
+            'initial_start': self.quote_value(model.retention.initial_start),
+            'timezone': self.quote_value(model.retention.timezone),
+            'if_not_exists': self.quote_value(model.retention.if_not_exists),
+            'drop_created_before': self.quote_value(model.retention.drop_created_before)
+        }
+        self.execute(sql)
+
 
     def create_model(self, model):
         """ Find TimescaleDateTimeField in the model and use it as partition when creating hypertable """
+        super().create_model(model)
         if getattr(model, 'compression', False):
             self._enable_compression(model)
         if getattr(model, 'continuous_aggregate', False):
             return self._create_continuous_aggregate(model)
-        super().create_model(model)
+        if getattr(model, 'retention', False):
+            self._enable_retention(model)
         for field in model._meta.local_fields:
             if isinstance(field, TimescaleDateTimeField):
                 self._create_hypertable(model, field)

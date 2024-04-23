@@ -21,10 +21,12 @@ class DatabaseWrapper(base_impl.backend()):
                 cursor.execute('CREATE EXTENSION IF NOT EXISTS timescaledb')
             except ProgrammingError:  # permission denied
                 logger.warning(
-                    'Failed to create "timescaledb" extension. '
-                    'Usage of timescale capabilities might fail'
-                    'If timescale is needed, make sure you are connected '
-                    'to the database as a superuser '
-                    'or add the extension manually.',
+                    msg='''
+                    Failed to create "timescaledb" extension. 
+                    Usage of timescale capabilities might fail
+                    If timescale is needed, make sure you are connected 
+                    to the database as a superuser 
+                    or add the extension manually.
+                    ''',
                     exc_info=True
                 )

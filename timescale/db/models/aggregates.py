@@ -8,7 +8,6 @@ class Histogram(models.Aggregate):
     Read more about it here - https://docs.timescale.com/latest/using-timescaledb/reading-data#histogram
     Response:
     <TimescaleQuerySet [{'histogram': [0, 0, 0, 87, 93, 125, 99, 59, 0, 0, 0, 0], 'device__count': 463}]>
-
     """
     function = 'histogram'
     name = 'histogram'
@@ -19,6 +18,7 @@ class Histogram(models.Aggregate):
 
 
 class AggregateWithWeakRules(models.Aggregate):
+    """ overrides Aggregate's resolve_output_field to allow mixed value types between value and output field. """
     def _resolve_output_field(self):
         sources_iter = (
             source for source in self.get_source_fields() if source is not None

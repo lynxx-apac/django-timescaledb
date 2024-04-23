@@ -7,7 +7,6 @@ class Interval(models.Func):
     A helper class to format the interval used by the time_bucket_gapfill function to generate correct timestamps.
     Accepts an interval e.g '1 day', '5 days', '1 hour'
     """
-
     function = "INTERVAL"
     template = "%(function)s %(expressions)s"
 
@@ -15,6 +14,11 @@ class Interval(models.Func):
         if not isinstance(interval, models.Value):
             interval = models.Value(interval)
         super().__init__(interval, *args, **kwargs)
+
+    @property
+    def raw_sql(self):
+        # TODO: should use as_sql instead with correct compiler
+        return self.template % {'function': self.function, 'expressions': self.source_expressions[0].value}
 
 
 class TimeBucket(models.Func):
@@ -29,7 +33,6 @@ class TimeBucket(models.Func):
         {'bucket': '2020-12-22T07:00:00+00:00', 'devices': 12},
     ]
     """
-
     function = "time_bucket"
     name = "time_bucket"
 
@@ -37,7 +40,7 @@ class TimeBucket(models.Func):
         if not isinstance(interval, models.Value):
             interval = models.Value(interval)
         output_field = TimescaleDateTimeField(interval=interval)
-        super().__init__(interval, expression, output_field=output_field)
+        super().__init__(interval, expression, *args, output_field=output_field, **kwargs)
 
 
 class TimeBucketGapFill(models.Func):
@@ -52,7 +55,6 @@ class TimeBucketGapFill(models.Func):
         ...
     ]
     """
-
     function = "time_bucket_gapfill"
     name = "time_bucket_gapfill"
 
@@ -64,4 +66,4 @@ class TimeBucketGapFill(models.Func):
             if datapoints:
                 interval = interval / datapoints
         output_field = TimescaleDateTimeField(interval=interval)
-        super().__init__(interval, expression, start, end, output_field=output_field)
+        super().__init__(interval, expression, start, end, *args, output_field=output_field, **kwargs)

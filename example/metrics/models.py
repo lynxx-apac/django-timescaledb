@@ -1,12 +1,23 @@
+from datetime import datetime
 from typing import Optional
-
 from django.db import models
+from django.utils import timezone
+from django.conf import settings
 from timescale.db.models.aggregates import First, Last
 from timescale.db.models.expressions import Interval
-
 from timescale.db.models.fields import TimescaleDateTimeField
 from timescale.db.models.models import TimescaleModel, ContinuousAggregateModel
 from timescale.db.models.managers import TimescaleManager, ContinuousAggregateManager, CompressionManager
+from timescale.db.models.managers import RetentionManager
+
+
+class MetricRetentionManager(RetentionManager):
+    drop_after: Interval = Interval('1 day')
+    schedule_interval: Interval = Interval('1 hour')
+    initial_start: datetime = timezone.now
+    timezone: str = settings.TIME_ZONE
+    if_not_exists: bool = True
+    drop_created_before: bool = True
 
 
 class Metric(models.Model):
@@ -15,6 +26,7 @@ class Metric(models.Model):
     device = models.IntegerField(default=0)
 
     objects = models.Manager()
+    retention = MetricRetentionManager()
     timescale = TimescaleManager()
 
 
@@ -43,6 +55,15 @@ class MetricCompression(CompressionManager):
     compress_created_before: Optional[bool] = None
 
 
+class MetricAggregateRetentionManager(RetentionManager):
+    drop_after: Interval = Interval('1 day')
+    schedule_interval: Interval = Interval('1 hour')
+    initial_start: datetime = timezone.now
+    timezone: str = settings.TIME_ZONE
+    if_not_exists: bool = True
+    drop_created_before: bool = True
+
+
 class MetricAggregate(ContinuousAggregateModel):
     first_temperature = models.FloatField(null=True, blank=True)
     last_temperature = models.FloatField(null=True, blank=True)
@@ -50,3 +71,4 @@ class MetricAggregate(ContinuousAggregateModel):
 
     continuous_aggregate = MetricMaterializedView()
     compression = MetricCompression()
+    retention = MetricAggregateRetentionManager()

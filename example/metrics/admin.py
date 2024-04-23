@@ -9,4 +9,4 @@ class MetricAdmin(admin.ModelAdmin):
 
 @admin.register(MetricAggregate)
 class AnotherMetricFromTimeScaleModelAdmin(admin.ModelAdmin):
-    list_display = ['bucket', 'device', 'first_temperature', 'last_temperature']
+    list_display = ['time', 'device', 'first_temperature', 'last_temperature']

@@ -11,7 +11,6 @@ class TimescaleManager(models.Manager):
     A custom model manager specifically designed around the Timescale
     functions and tooling that has been ported to Django's ORM.
     """
-
     def get_queryset(self):
         return TimescaleQuerySet(self.model, using=self._db)
 

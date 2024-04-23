@@ -9,5 +9,4 @@ class TimescaleDateTimeField(DateTimeField):
     def deconstruct(self):
         name, path, args, kwargs = super().deconstruct()
         kwargs['interval'] = self.interval
-
         return name, path, args, kwargs

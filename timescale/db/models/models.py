@@ -1,6 +1,7 @@
 from django.db import models
 from timescale.db.models.fields import TimescaleDateTimeField
 from timescale.db.models.managers import TimescaleManager, CompressionManager, ContinuousAggregateManager
+from timescale.db.models.managers import RetentionManager
 
 
 class TimescaleModel(models.Model):
@@ -12,6 +13,7 @@ class TimescaleModel(models.Model):
     time = TimescaleDateTimeField(interval="1 day")
 
     objects = models.Manager()
+    retention = RetentionManager()
     timescale = TimescaleManager()
     compression = CompressionManager()
 
@@ -25,6 +27,7 @@ class ContinuousAggregateModel(models.Model):
     time = TimescaleDateTimeField(interval="2 day", primary_key=True)
 
     timescale = TimescaleManager()
+    retention = RetentionManager()
     compression = CompressionManager()
     continuous_aggregate = ContinuousAggregateManager()
 
