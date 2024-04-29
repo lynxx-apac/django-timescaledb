@@ -16,9 +16,13 @@ class Interval(models.Func):
         super().__init__(interval, *args, **kwargs)
 
     @property
+    def value(self):
+        return self.source_expressions[0].value
+
+    @property
     def raw_sql(self):
         # TODO: should use as_sql instead with correct compiler
-        return self.template % {'function': self.function, 'expressions': self.source_expressions[0].value}
+        return self.template % {'function': self.function, 'expressions': self.value}
 
 
 class TimeBucket(models.Func):

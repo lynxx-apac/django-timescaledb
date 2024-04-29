@@ -60,13 +60,7 @@ class TimescaleBaseSchemaEditor(DatabaseSchemaEditor):
         ""
     )
     sql_enable_compression = """
-        ALTER TABLE %(table)s
-        SET (
-           timescaledb.compress=%(enable)s
-           %(order_by)s
-           %(segment_by)s
-           %(chunk_time_interval)s
-        )
+        ALTER TABLE %(table)s SET (timescaledb.compress=%(enable)s%(order_by)s%(segment_by)s%(chunk_time_interval)s)
     """
     sql_disable_compression = "ALTER TABLE %(table)s SET (timescaledb.compress=FALSE)"
     sql_add_compression_policy = """
@@ -153,9 +147,9 @@ class TimescaleBaseSchemaEditor(DatabaseSchemaEditor):
         sql = self.sql_enable_compression % {
             'table': model._meta.db_table,
             'enable': self.quote_value(model.compression.enable),
-            'order_by': self.quote_value(model.compression.order_by),
-            'segment_by': self.quote_value(model.compression.segment_by),
-            'chunk_time_interval': self.quote_value(model.compression.chunk_time_interval.raw_sql)
+            'order_by': model.compression.compress_order_by,
+            'segment_by': model.compression.compress_segment_by,
+            'chunk_time_interval': model.compression.compress_chunk_time_interval
         }
         self.execute(sql)
 
@@ -173,7 +167,6 @@ class TimescaleBaseSchemaEditor(DatabaseSchemaEditor):
             'drop_created_before': self.quote_value(model.retention.drop_created_before)
         }
         self.execute(sql)
-
 
     def create_model(self, model):
         """ Find TimescaleDateTimeField in the model and use it as partition when creating hypertable """

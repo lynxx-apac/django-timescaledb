@@ -45,16 +45,39 @@ class CompressionManager(models.Manager):
     """ custom manager to define compression of table and its policy """
     use_in_migrations = True
     enable: bool = True
-    compress_after: Interval = None
     order_by: Optional[iter] = None
     segment_by: Optional[iter] = None
     chunk_time_interval: Optional[Interval] = None
     # compression policy parameters
+    compress_after: Interval = None
     schedule_interval: Optional[Interval] = None
     initial_start: Optional[datetime] = None
     timezone: Optional[str] = None
     if_not_exists: Optional[bool] = True
     compress_created_before: Optional[Interval] = None
+
+    @property
+    def compress_order_by(self):
+        if self.order_by is None:
+            return ''
+        order_by = []
+        for order_field in self.order_by:
+            if order_field.startswith('-'):
+                order_field = f'{order_field} ASC'
+            order_by.append(order_field)
+        return f", compress_orderby = '{",".join(order_by)}'"
+
+    @property
+    def compress_segment_by(self):
+        if self.segment_by is None:
+            return ''
+        return f", compress_segmentby = '{",".join(self.segment_by)}'"
+
+    @property
+    def compress_chunk_time_interval(self):
+        if self.chunk_time_interval is None:
+            return ''
+        return f", compress_chunk_time_interval = '{self.chunk_time_interval.value}'"
 
 
 class RetentionManager(models.Manager):
