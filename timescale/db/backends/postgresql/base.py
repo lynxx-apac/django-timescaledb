@@ -1,6 +1,8 @@
 import logging
-from . import base_impl
 from django.db import ProgrammingError
+from django.contrib.postgres.operations import CreateExtension
+
+from . import base_impl
 from .schema import TimescaleSchemaEditor
 
 
@@ -16,17 +18,16 @@ class DatabaseWrapper(base_impl.backend()):
         This is where we enable the `timescaledb` extension if it isn't enabled yet.
         """
         super().prepare_database()
-        with self.cursor() as cursor:
-            try:
-                cursor.execute('CREATE EXTENSION IF NOT EXISTS timescaledb')
-            except ProgrammingError:  # permission denied
-                logger.warning(
-                    msg='''
+        try:
+            CreateExtension('timescaledb')
+        except ProgrammingError:  # permission denied
+            logger.warning(
+                msg='''
                     Failed to create "timescaledb" extension. 
                     Usage of timescale capabilities might fail
                     If timescale is needed, make sure you are connected 
                     to the database as a superuser 
                     or add the extension manually.
-                    ''',
-                    exc_info=True
-                )
+                ''',
+                exc_info=True
+            )

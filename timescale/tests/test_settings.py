@@ -1,7 +1,7 @@
 SECRET_KEY = 'fake-key'
 
 INSTALLED_APPS = [
-    'timescale'
+    'timescale.tests'
 ]
 
 DATABASES = {
@@ -14,3 +14,5 @@ DATABASES = {
         'PORT': '5432',
     }
 }
+
+TIME_ZONE = 'UTC'
