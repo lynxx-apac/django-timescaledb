@@ -1,6 +1,5 @@
 from datetime import datetime
 from django.db import models
-
 from timescale.db.models.expressions import Interval
 from timescale.db.models.querysets import TimescaleQuerySet
 from typing import Optional
@@ -31,13 +30,15 @@ class ContinuousAggregateManager(TimescaleManager):
     materialized_only = True
     create_group_indexes = False
     finalized = False
+    # continuous aggregate policy
+    start_offset: (Interval, int) = None
+    end_offset: (Interval, int) = None
+    schedule_interval: Interval = None
+    initial_start: datetime = None
+    timezone: str = None
 
     def create_materialized_view(self):
         """ define materialized view for continuous aggregation that will produce its parent table """
-        pass
-
-    def create_continuous_aggregate_policy(self):
-        """ create refresh policy for continuous aggregation """
         pass
 
 
@@ -65,13 +66,13 @@ class CompressionManager(models.Manager):
             if order_field.startswith('-'):
                 order_field = f'{order_field} ASC'
             order_by.append(order_field)
-        return f", compress_orderby = '{",".join(order_by)}'"
+        return ', compress_orderby = ' + ",".join(order_by)
 
     @property
     def compress_segment_by(self):
         if self.segment_by is None:
             return ''
-        return f", compress_segmentby = '{",".join(self.segment_by)}'"
+        return ', compress_segmentby = ' + ",".join(self.segment_by)
 
     @property
     def compress_chunk_time_interval(self):

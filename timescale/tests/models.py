@@ -1,5 +1,4 @@
 from datetime import datetime
-
 from django.db import models
 from django.utils import timezone
 from django.conf import settings
@@ -44,15 +43,21 @@ class Metric(TimescaleModel):
 
 
 class MetricMaterializedView(ContinuousAggregateManager):
-    @staticmethod
-    def first_last_temperature_view():
+    materialized_only = True
+    create_group_indexes = False
+    finalized = False
+    # continuous aggregate policy
+    start_offset: (Interval, int) = None
+    end_offset: (Interval, int) = None
+    schedule_interval: Interval = None
+    initial_start: datetime = None
+    timezone: str = None
+
+    def create_materialized_view(self):
         return Metric.timescale.time_bucket('time', interval='20 minutes').values('bucket', 'device').annotate(
             first_temperature=First('temperature', 'time'),
             last_temperature=Last('temperature', 'time'),
         )
-
-    def first_last_temperature_policy(self):
-        pass
 
 
 class MetricCompression(CompressionManager):
