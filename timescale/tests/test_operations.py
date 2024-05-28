@@ -1,10 +1,7 @@
-from django.apps import apps
-from django.test import TestCase
-from django.db.migrations.executor import MigrationExecutor
-from django.db import connection
+from migrations.test_base import OperationTestBase
 
 
-class TestMigrations(TestCase):
+class TimescaleDBMigrationTest(OperationTestBase):
     @property
     def app(self):
         return apps.get_containing_app_config(type(self).__module__).name
