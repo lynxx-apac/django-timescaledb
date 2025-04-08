@@ -35,3 +35,22 @@ class Last(AggregateWithWeakRules):
 class First(AggregateWithWeakRules):
     function = "first"
     name = "first"
+
+
+class GapFillFunction(models.Func):
+    template = "%(function)s(%(expressions)s)"
+    contains_aggregate = True
+    name = None
+    filter_template = "%s FILTER (WHERE %%(filter)s)"
+    window_compatible = True
+
+
+class Locf(GapFillFunction):
+    function = "locf"
+    name = "locf"
+
+
+class Interpolate(GapFillFunction):
+    function = "interpolate"
+    name = "interpolate"
+
