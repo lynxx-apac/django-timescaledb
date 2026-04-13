@@ -1,8 +1,10 @@
-from django.db import models
-from timescale.db.models.expressions import TimeBucket, TimeBucketGapFill
-from timescale.db.models.aggregates import Histogram
-from typing import Dict, Optional
 from datetime import datetime
+from typing import Dict, Optional
+
+from django.db import models
+
+from timescale.db.models.aggregates import Histogram, LTTB
+from timescale.db.models.expressions import TimeBucket, TimeBucketGapFill
 
 
 class TimescaleQuerySet(models.QuerySet):
@@ -12,13 +14,23 @@ class TimescaleQuerySet(models.QuerySet):
             return self.values(bucket=TimeBucket(field, interval)).order_by('-bucket').annotate(**annotations)
         return self.values(bucket=TimeBucket(field, interval)).order_by('-bucket')
 
-    def time_bucket_gapfill(self, field: str, interval: str, start: datetime, end: datetime, datapoints: Optional[int] = None):
+    def time_bucket_gapfill(self, field: str, interval: str, start: datetime, end: datetime,
+                            datapoints: Optional[int] = None):
         """ Wraps the TimescaleDB time_bucket_gapfill function into a queryset method. """
         return self.values(bucket=TimeBucketGapFill(field, interval, start, end, datapoints))
 
     def histogram(self, field: str, min_value: float, max_value: float, num_of_buckets: int = 5):
         """ Wraps the TimescaleDB histogram function into a queryset method. """
         return self.values(histogram=Histogram(field, min_value, max_value, num_of_buckets))
+
+    def lttb(self, time: str, value: str, num_of_counts: int = 20):
+        """
+        Wraps the TimescaleDB toolkit lttb function into a queryset method.
+        """
+        return self.values(
+            lttb_t=LTTB(time, value, num_of_counts, time),
+            lttb_v=LTTB(time, value, num_of_counts, value)
+        )
 
     def to_list(self, normalise_datetimes: bool = False):
         if normalise_datetimes:

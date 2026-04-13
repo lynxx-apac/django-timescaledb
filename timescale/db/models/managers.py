@@ -23,6 +23,8 @@ class TimescaleManager(models.Manager):
     def histogram(self, field: str, min_value: float, max_value: float, num_of_buckets: int = 5):
         return self.get_queryset().histogram(field, min_value, max_value, num_of_buckets)
 
+    def lttb(self, time: str, value: str, num_of_counts: int = 20):
+        return self.get_queryset().lttb(time, value, num_of_counts)
 
 class ContinuousAggregateManager(TimescaleManager):
     """ Custom manager to define materialized view and refresh policy """

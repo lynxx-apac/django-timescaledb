@@ -1,5 +1,6 @@
 from django.db import models
 from django.contrib.postgres.fields import ArrayField
+from django.db.models.fields import FloatField
 
 
 class Histogram(models.Aggregate):
@@ -27,9 +28,27 @@ class AggregateWithWeakRules(models.Aggregate):
             return output_field
 
 
-class Last(AggregateWithWeakRules):
-    function = "last"
-    name = "last"
+class LTTB(models.Func):
+    function = 'lttb'
+    name = 'lttb'
+    output_field = models.DateTimeField()
+
+    def __init__(self, time, value, count, field):
+        self.fieldname = field
+        super().__init__(time, value, count)
+
+    def as_sql(self, compiler, connection, **extra_context):
+        sql, params = super().as_sql(compiler, connection, **extra_context)
+        return f'(unnest({sql})).{self.fieldname}', params
+
+
+class Last(models.Aggregate):
+    function = 'last'
+    name = 'last'
+    output_field = FloatField()
+
+    def __init__(self, expression, bucket):
+        super().__init__(expression, bucket)
 
 
 class First(AggregateWithWeakRules):
@@ -54,3 +73,14 @@ class Interpolate(GapFillFunction):
     function = "interpolate"
     name = "interpolate"
 
+    def __init__(self, expression, bucket):
+        super().__init__(expression, bucket)
+
+
+class First(models.Aggregate):
+    function = 'first'
+    name = 'first'
+    output_field = FloatField()
+
+    def __init__(self, expression, bucket):
+        super().__init__(expression, bucket)

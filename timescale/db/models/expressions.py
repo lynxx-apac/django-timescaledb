@@ -40,10 +40,46 @@ class TimeBucket(models.Func):
     function = "time_bucket"
     name = "time_bucket"
 
+
+    def __init__(self, expression, interval, offset=None, origin=None, *args, **kwargs):
+        if not isinstance(interval, models.Value):
+            interval = models.Value(interval)
+        args = [interval, expression]
+        if origin is not None:
+            args.append(origin)
+        elif offset is not None:
+            if not isinstance(offset, models.Value):
+                offset = models.Value(offset)
+            args.append(offset)
+        output_field = TimescaleDateTimeField(interval=interval)
+        super().__init__(*args, output_field=output_field)
+
+
+class TimeBucketNG(models.Func):
+    """
+    Implementation of the time_bucket_ng function from Timescale.
+
+    Read more about it here - https://docs.timescale.com/api/latest/hyperfunctions/time_bucket_ng/#timescaledb-experimental-time-bucket-ng
+
+    Response:
+
+    [
+        {'bucket': '2020-12-01T00:00:00+00:00', 'devices': 12},
+        {'bucket': '2020-11-01T00:00:00+00:00', 'devices': 12},
+        {'bucket': '2020-10-01T00:00:00+00:00', 'devices': 12},
+        {'bucket': '2020-09-01T00:00:00+00:00', 'devices': 12},
+    ]
+
+    """
+
+    function = "timescaledb_experimental.time_bucket_ng"
+    name = "timescaledb_experimental.time_bucket_ng"
+
     def __init__(self, expression, interval, *args, **kwargs):
         if not isinstance(interval, models.Value):
             interval = models.Value(interval)
         output_field = TimescaleDateTimeField(interval=interval)
+        super().__init__(interval, expression, output_field=output_field)
         super().__init__(interval, expression, *args, output_field=output_field, **kwargs)
 
 
