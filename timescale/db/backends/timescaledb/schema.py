@@ -1,6 +1,11 @@
+import logging
+
 from django.conf import settings
 from django.db.backends.postgresql.schema import DatabaseSchemaEditor
+
 from timescale.db.models.fields import TimescaleDateTimeField
+
+logger = logging.getLogger(__name__)
 
 
 class TimescaleBaseSchemaEditor(DatabaseSchemaEditor):
@@ -198,11 +203,10 @@ class TimescaleBaseSchemaEditor(DatabaseSchemaEditor):
 
     def _get_extra_condition(self):
         extra_condition = ''
-        try:
-            if self.connection.schema_name:
-                schema = self.sql_hypertable_is_in_schema % {
-                    'schema_name': self.quote_value(self.connection.schema_name)}
-                extra_condition = f' AND {schema}'
-        except Exception as e:
-            print(f'{e}. no extra conditions required')
+        if hasattr(self.connection, 'schema_name'):
+            schema = self.sql_hypertable_is_in_schema % {
+                'schema_name': self.quote_value(self.connection.schema_name)}
+            extra_condition = f' AND {schema}'
+        else:
+            logger.debug(f'no extra conditions required')
         return extra_condition

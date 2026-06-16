@@ -1,7 +1,18 @@
-from migrations.test_base import OperationTestBase
+import unittest
+from django.test import SimpleTestCase, TestCase, modify_settings
+from django.db import connection
 
 
-class TimescaleDBMigrationTest(OperationTestBase):
+class TimescaleDBExtensionTest(TestCase):
+    def test_extension_installed(self):
+        with connection.cursor() as cursor:
+            cursor.execute("SELECT * FROM pg_available_extensions")
+            self.assertTrue(cursor.rowcount > 0)
+
+
+
+
+class TimescaleDBMigrationTest(unittest.TestCase):
     @property
     def app(self):
         return apps.get_containing_app_config(type(self).__module__).name
@@ -11,29 +22,25 @@ class TimescaleDBMigrationTest(OperationTestBase):
 
     def setUp(self):
         assert self.migrate_from and self.migrate_to, \
-            "TestCase '{}' must define migrate_from and migrate_to     properties".format(type(self).__name__)
+            f"TestCase '{type(self).__name__}' must define migrate_from and migrate_to properties"
         self.migrate_from = [(self.app, self.migrate_from)]
         self.migrate_to = [(self.app, self.migrate_to)]
         executor = MigrationExecutor(connection)
         old_apps = executor.loader.project_state(self.migrate_from).apps
-
         # Reverse to the original migration
         executor.migrate(self.migrate_from)
-
         self.setUpBeforeMigration(old_apps)
-
         # Run the migration to test
         executor = MigrationExecutor(connection)
         executor.loader.build_graph()  # reload.
         executor.migrate(self.migrate_to)
-
         self.apps = executor.loader.project_state(self.migrate_to).apps
 
     def setUpBeforeMigration(self, apps):
         pass
 
 
-class ModelTest(TestCase):
+class ModelTest(unittest.TestCase):
     def _run_command(self, *args):
         from django.core.management import execute_from_command_line
         argv = ['manage.py'] + list(args)

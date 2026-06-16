@@ -1,6 +1,6 @@
 from django.db import models
-from django.db.models.fields.related_descriptors import ForwardManyToOneDescriptor, ReverseManyToOneDescriptor, \
-    create_reverse_many_to_one_manager
+from django.db.models.fields.related_descriptors import ForwardManyToOneDescriptor, ReverseManyToOneDescriptor
+from django.db.models.fields.related_descriptors import create_reverse_many_to_one_manager
 from django.db.models.sql.where import WhereNode, AND
 from django.utils.functional import cached_property
 

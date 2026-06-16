@@ -1,5 +1,6 @@
 import logging
 from django.db import ProgrammingError
+from django.db.migrations.state import ProjectState
 from django.contrib.postgres.operations import CreateExtension
 
 from . import base_impl
@@ -18,8 +19,13 @@ class DatabaseWrapper(base_impl.backend()):
         This is where we enable the `timescaledb` extension if it isn't enabled yet.
         """
         super().prepare_database()
+        # this comes from django/test/postgres_test/test_operations.py -> CreateExtensionTests
+        app_label = "create_extension_dummy_app"
+        operation = CreateExtension('timescaledb')
+        project_state = ProjectState()
+        new_state = project_state.clone()
         try:
-            CreateExtension('timescaledb')
+            operation.database_forwards(app_label, self.client.connection.schema_editor(), new_state, project_state)
         except ProgrammingError:  # permission denied
             logger.warning(
                 msg='''

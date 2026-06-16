@@ -19,7 +19,7 @@ class DatabaseWrapper(base_impl.backend()):
         """
         super().prepare_database()
         # this comes from django/test/postgres_test/test_operations.py -> CreateExtensionTests
-        app_label = "create_extention_dummy_app"
+        app_label = "create_extension_dummy_app"
         operation = CreateExtension('timescaledb')
         project_state = ProjectState()
         new_state = project_state.clone()
